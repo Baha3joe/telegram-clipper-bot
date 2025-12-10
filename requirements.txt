@@ -1,0 +1,7 @@
+python-telegram-bot
+yt-dlp
+moviepy==2.0.0.dev2
+openai-whisper
+torch
+python-dotenv
+nltk
