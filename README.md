@@ -1,5 +1,5 @@
 ---
-title: Livebook
+title: Bahajoe
 emoji: 📓
 colorFrom: pink
 colorTo: purple
