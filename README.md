@@ -3,7 +3,7 @@ title: AI Video Clipper Telegram Bot (Docker)
 emoji: 🚀
 colorFrom: blue
 colorTo: green
-sdk: docker  <-- IMPORTANT: We are changing this to 'docker'
+sdk: docker
 app_file: bot.py 
 pinned: false
 ---
