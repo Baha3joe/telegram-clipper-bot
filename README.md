@@ -1,16 +1,15 @@
 ---
-title: Bahajoe
-emoji: 🐢
-colorFrom: purple
-colorTo: gray
-sdk: gradio
-sdk_version: 6.1.0
-app_file: app.py
+title: AI Video Clipper Telegram Bot (Docker)
+emoji: 🚀
+colorFrom: blue
+colorTo: green
+sdk: docker  <-- IMPORTANT: We are changing this to 'docker'
+app_file: bot.py 
 pinned: false
-This line is to force the Docker configuration to be reloaded.
-
 ---
 
-This line is to force the Docker configuration to be reloaded.
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
-This line is to force the Docker configuration to be reloaded.
+# 🤖 AI Video Clipper Telegram Bot
+
+This Space runs a Dockerized Telegram bot for creating YouTube video clips with automatic captions and tags.
+
+To use the bot, please chat with the Telegram Bot directly.
