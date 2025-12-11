@@ -1,8 +1,10 @@
-# Use a robust base image with Python 3.11 for AI tasks
+# 1. Base Image: Uses PyTorch base to avoid installation failures for numpy/torch
 FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
 
+# Environment Variables
 ENV PYTHONUNBUFFERED=1
-ENV PATH="/home/user/.local/bin:$PATH" # Set PATH to find locally installed binaries
+# Set PATH to find locally installed binaries (crucial for yt-dlp, whisper)
+ENV PATH="/home/user/.local/bin:$PATH" 
 
 # Install system dependencies (FFmpeg is required for moviepy)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -15,23 +17,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /home/user/app
 
-# 1. Create the user
+# 2. Create the non-root user
 RUN useradd -m user
 
-# 2. INSTALL DEPENDENCIES (using the safe --user flag and targeting the user's home)
-# This prevents permission issues and ensures modules are accessible
+# 3. Install remaining Python dependencies with --user flag
+# This installs packages into the user's local directory, bypassing system conflicts.
 COPY requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
-# 3. CREATE DIRECTORIES AND SET PERMISSIONS (as root)
-# The RUN commands run as root by default, so we create and change ownership
+# 4. Create directories and set full ownership/permissions
+# This must run as root before switching to the limited user.
 RUN mkdir -p downloads clips && chown -R user:user /home/user/app /home/user/.local
 
-# 4. SWITCH TO THE LIMITED USER
+# 5. Switch to the limited user for security and runtime execution
 USER user
 
-# 5. COPY THE CODE
+# 6. Copy application code (owned by 'user')
 COPY --chown=user:user . .
 
-# 6. Run the application
+# 7. Run the application
 CMD ["python3", "bot.py"]
