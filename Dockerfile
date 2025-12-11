@@ -1,30 +1,28 @@
-FROM python:3.11-slim
+# 🚨 CHANGE: Use a base image with PyTorch and CUDA pre-installed 🚨
+FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies (FFmpeg is required for moviepy)
+# Install system dependencies (FFmpeg is still required for moviepy)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libsm6 \
     libxext6 \
+    python3-pip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory
 WORKDIR /home/user/app
 
+# Install remaining Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt # Build Timestamp: 2025-12-11-Final-Attempt-3
+
 # Create user for security
 RUN useradd -m user
 USER user
-
-# Install sensitive Python dependencies (Torch and NumPy first)
-# This layer MUST be separate to guarantee correct dependency linking
-RUN pip install --no-cache-dir numpy torch # Final binary dependency fix
-
-# Install remaining Python dependencies
-COPY --chown=user:user requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt # Build Timestamp: 2025-12-11-Final-Attempt-2
 
 # Create necessary directories
 RUN mkdir -p downloads clips

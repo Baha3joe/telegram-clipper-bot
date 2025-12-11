@@ -5,3 +5,5 @@ openai-whisper
 httpx
 Pillow
 tqdm
+numpy
+torch  # Re-added
