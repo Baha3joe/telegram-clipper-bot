@@ -5,7 +5,3 @@ openai-whisper
 httpx
 Pillow
 tqdm
-numpy
-torch
-
-# Trigger rebuild 12-11-2025

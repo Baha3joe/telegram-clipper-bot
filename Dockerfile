@@ -18,10 +18,13 @@ WORKDIR /home/user/app
 RUN useradd -m user
 USER user
 
-# Install Python dependencies
+# Install sensitive Python dependencies (Torch and NumPy first)
+# This layer MUST be separate to guarantee correct dependency linking
+RUN pip install --no-cache-dir numpy torch # Final binary dependency fix
+
+# Install remaining Python dependencies
 COPY --chown=user:user requirements.txt .
-# 🚨 ADD A COMMENT HERE TO FORCE CACHE INVALIDATION 🚨
-RUN pip install --no-cache-dir -r requirements.txt # Build Timestamp: 2025-12-11-Final-Attempt-1
+RUN pip install --no-cache-dir -r requirements.txt # Build Timestamp: 2025-12-11-Final-Attempt-2
 
 # Create necessary directories
 RUN mkdir -p downloads clips
