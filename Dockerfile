@@ -1,32 +1,33 @@
-# 1. Base Image
 FROM python:3.11-slim
 
-# 2. Install System Dependencies (FFmpeg, ImageMagick)
-RUN apt-get update && apt-get install -y \
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+
+# Install system dependencies (FFmpeg is required for moviepy)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libsm6 \
     libxext6 \
-    imagemagick \
-    # Clean up APT files to keep the image small
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# 3. Create and Switch to a Non-Root User
-RUN useradd -m -u 1000 user
+# Set the working directory
+WORKDIR /home/user/app
+
+# Create user for security
+RUN useradd -m user
 USER user
-ENV HOME=/home/user
 
-# 4. Set Working Directory
-WORKDIR $HOME/app
-
-# 5. Install Python Dependencies
+# Install Python dependencies
 COPY --chown=user:user requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# 🚨 ADD A COMMENT HERE TO FORCE CACHE INVALIDATION 🚨
+RUN pip install --no-cache-dir -r requirements.txt # Build Timestamp: 2025-12-11-Final-Attempt-1
 
-# 6. Copy Application Code
-COPY --chown=user:user . .
-
-# 7. Create Temporary Folders
+# Create necessary directories
 RUN mkdir -p downloads clips
 
-# 8. Start the Bot
+# Copy the rest of the application code
+COPY --chown=user:user . .
+
+# Run the application
 CMD ["python", "bot.py"]
