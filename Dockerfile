@@ -1,8 +1,8 @@
-# 1. BASE IMAGE: Use a stable and smaller Debian-based Python image
-FROM python:3.10-slim-buster
+# 1. BASE IMAGE: Use a stable and supported Python image (3.12 on Debian Bookworm).
+# This fixes the "404 Not Found" error caused by the old 'buster' image.
+FROM python:3.12-slim-bookworm
 
-# 2. INSTALL SYSTEM DEPENDENCIES: Install necessary libraries for FFmpeg/MoviePy and other tools.
-# 'tini' is used as an init system for graceful shutdown on Railway.
+# 2. INSTALL SYSTEM DEPENDENCIES: Install necessary libraries (ffmpeg, MoviePy dependencies, tini).
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ffmpeg \
@@ -19,23 +19,19 @@ WORKDIR /home/user/app
 # 4. COPY CODE
 COPY . .
 
-# 5. CRITICAL FIX: Switch to the non-root user *before* installing packages.
-# This ensures all installed files and directories belong to 'user'.
+# 5. CRITICAL FIX (from previous issue): Switch to the non-root user *before* installing packages.
+# This prevents the previous chown error and ensures correct file ownership.
 USER user
 
-# 6. INSTALL PYTHON DEPENDENCIES: This will automatically create /home/user/.local 
-# and own it with 'user', resolving your previous permission error.
+# 6. INSTALL PYTHON DEPENDENCIES: Installed as the non-root 'user'.
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 7. CREATE WORKING DIRECTORIES: Create the folders the bot needs for processing.
-# This runs as 'user', so no 'chown' is needed.
+# 7. CREATE WORKING DIRECTORIES: Created as the non-root 'user'.
 RUN mkdir -p downloads clips
 
-# 8. EXPOSE PORT: Railway will automatically map a public port to this internal port.
-# If your bot is a web-hook listener, it needs a port. If it's a long-polling bot, 
-# this line is technically optional but good practice.
+# 8. EXPOSE PORT (Optional, if your bot uses webhooks)
 EXPOSE 8080
 
-# 9. RUN BOT: Use tini as the entrypoint for proper signal handling (recommended for Docker).
+# 9. RUN BOT: Use tini for proper signal handling.
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["python3", "bot.py"]
