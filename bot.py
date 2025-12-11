@@ -3,9 +3,10 @@ import sys
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from video_utils import process_video_clip
+# CORRECT IMPORT: Ensure this function name exactly matches the definition in video_utils.py
+from video_utils import process_youtube_clip
 
-# Configure logging
+# --- Logging Configuration ---
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
@@ -13,20 +14,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --- Configuration ---
-# ⚠️ WARNING: Hardcoding the token is strongly discouraged for security reasons.
-# Use Hugging Face Secrets instead.
-# If you must hardcode it, replace the line below with the token you provided:
-# TOKEN = "8575159633:AAHt8KYNKLrWKID8FOyZipEcPAxZ_zdjgg4" 
-#
-# If you are using Hugging Face Secrets (RECOMMENDED):
+# 1. Fetch token securely from environment variable (Hugging Face Secret)
 TOKEN = os.getenv("BOT_TOKEN") 
 
-# Ensure the token is available
+# 2. Safety check for the token
 if not TOKEN:
     logger.error("FATAL: BOT_TOKEN is missing. Please set it as a Hugging Face Secret.")
     sys.exit(1)
 
-# Ensure necessary directories exist
+# 3. Define local directories (Crucial for Docker environment)
 DOWNLOAD_DIR = "downloads"
 CLIP_DIR = "clips"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
@@ -49,9 +45,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     user_message = update.message.text
     user_id = update.effective_user.id
     
-    # 1. Simple check for a link and time format
-    if "youtu" not in user_message and "0:" not in user_message and "1:" not in user_message:
-        logger.info(f"User {user_id} sent non-link message: {user_message[:20]}...")
+    # Simple check to filter out non-link/non-command messages
+    if "youtu" not in user_message or "-" not in user_message:
         return
         
     try:
@@ -60,46 +55,54 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         url = parts[0]
         time_range = parts[1] if len(parts) > 1 else None
 
-        if not time_range:
+        if not time_range or len(parts) < 2:
             await update.message.reply_text(
                 "Please specify the clip range (e.g., `1:30-2:00`) after the link."
             )
             return
 
+        await update.message.reply_text(f"Processing your request for {time_range}. This might take a few minutes...")
         logger.info(f"User {user_id} requested clip: {url} from {time_range}")
-        await update.message.reply_text(f"Processing your request for: {time_range}...")
         
-        # 2. Call the core processing function
-        final_clip_path = await process_video_clip(
+        # 4. Call the core processing function (MUST MATCH THE IMPORT NAME)
+        final_clip_path, caption = await process_youtube_clip(
             url, 
             time_range, 
             DOWNLOAD_DIR, 
             CLIP_DIR, 
             user_id,
-            logger # Pass logger for better tracking
+            logger
         )
 
         if final_clip_path:
-            # 3. Send the final video back
+            # 5. Send the final video back
             logger.info(f"Sending final clip to user {user_id}: {final_clip_path}")
+            
+            # Create a caption that includes the transcription
+            full_caption = f"✅ Clip ({time_range}) from video.\n\n"
+            if caption:
+                full_caption += f"Transcription:\n{caption}"
+            
             await update.message.reply_video(
                 video=open(final_clip_path, 'rb'),
-                caption=f"✅ Your clip from {time_range} is ready!",
-                supports_streaming=True
+                caption=full_caption,
+                supports_streaming=True,
+                read_timeout=600, # Allow longer timeout for large video uploads
+                write_timeout=600,
+                pool_timeout=600
             )
             
         else:
             await update.message.reply_text(
-                "❌ Error processing your clip. Please check the URL and time format (e.g., 0:30-1:00) and ensure the video is available."
+                "❌ Error processing your clip. Check the URL/time format (e.g., 0:30-1:00) or ensure the video is public."
             )
 
     except Exception as e:
-        logger.error(f"An unexpected error occurred during processing for user {user_id}: {e}", exc_info=True)
-        await update.message.reply_text("An unexpected error occurred. Please check the format and try again.")
+        logger.error(f"An unexpected error occurred: {e}", exc_info=True)
+        await update.message.reply_text("An unexpected error occurred. Check the format and try again.")
         
     finally:
-        # 4. Clean up files after processing
-        # Ensure your video_utils handles cleanup of temporary files (Crucial for free tier)
+        # NOTE: Cleanup should primarily happen inside process_youtube_clip
         pass
 
 
